@@ -1,403 +1,188 @@
-// Tulasi Sales System - GitHub Pages Ready Version (2025)
-// ------------------------------------------------------
-// Fixes:
-//  - Uses relative "./data/..." paths for GitHub Pages
-//  - Works correctly under /sales-system/ subdirectory
-//  - Proper login redirect for Admin & Sales Executives
-//  - Compatible with all browsers (no external backend)
-// ------------------------------------------------------
+// --------------------------------
+// SALES SYSTEM APP.JS
+// --------------------------------
 
-const app = (function(){
-  // local storage keys
-  const LS_USERS = 'ts_users';
-  const LS_DISTRICTS = 'ts_districts';
-  const LS_TOWNS = 'ts_towns';
-  const LS_DISTRIBUTORS = 'ts_distributors';
-  const LS_OUTLETS = 'ts_outlets';
-  const LS_ITEMS = 'ts_items';
-  const LS_SALES = 'ts_sales_orders';
-  const LS_VISITS = 'ts_outlet_visits';
+const app = (() => {
+  const LS_USERS = 'users';
+  const LS_DISTRICTS = 'districts';
+  const LS_TOWNS = 'towns';
+  const LS_DISTRIBUTORS = 'distributors';
+  const LS_OUTLETS = 'outlets';
+  const LS_ITEMS = 'items';
+  const LS_VISITS = 'visits';
+  const LS_LOGGEDIN = 'loggedinUser';
 
-  // Load initial JSON data files if not already in localStorage
-  function loadDefaults(){
-    if(!localStorage.getItem(LS_USERS)){
-      fetch('./data/users.json')
-        .then(r => r.json())
-        .then(j => localStorage.setItem(LS_USERS, JSON.stringify(j)))
-        .catch(err => console.error('Error loading users.json', err));
+  // --------------------------------
+  // Load Default JSON Data from /data/
+  // --------------------------------
+  async function loadDefaults() {
+    try {
+      const files = [
+        { key: LS_USERS, path: './data/users.json' },
+        { key: LS_DISTRICTS, path: './data/districts.json' },
+        { key: LS_TOWNS, path: './data/towns.json' },
+        { key: LS_DISTRIBUTORS, path: './data/distributors.json' },
+        { key: LS_OUTLETS, path: './data/outlets.json' },
+        { key: LS_ITEMS, path: './data/items.json' }
+      ];
+
+      for (const f of files) {
+        const res = await fetch(f.path);
+        if (!res.ok) throw new Error(`Failed to load ${f.path}`);
+        const data = await res.json();
+        localStorage.setItem(f.key, JSON.stringify(data));
+      }
+
+      console.log('✅ Data loaded successfully.');
+    } catch (err) {
+      console.error('⚠️ Error loading defaults:', err);
     }
-    if(!localStorage.getItem(LS_ITEMS)){
-      fetch('./data/items.json')
-        .then(r => r.json())
-        .then(j => localStorage.setItem(LS_ITEMS, JSON.stringify(j)))
-        .catch(err => console.error('Error loading items.json', err));
-    }
-    if(!localStorage.getItem(LS_DISTRICTS)) localStorage.setItem(LS_DISTRICTS, JSON.stringify([]));
-    if(!localStorage.getItem(LS_TOWNS)) localStorage.setItem(LS_TOWNS, JSON.stringify([]));
-    if(!localStorage.getItem(LS_DISTRIBUTORS)) localStorage.setItem(LS_DISTRIBUTORS, JSON.stringify([]));
-    if(!localStorage.getItem(LS_OUTLETS)) localStorage.setItem(LS_OUTLETS, JSON.stringify([]));
-    if(!localStorage.getItem(LS_SALES)) localStorage.setItem(LS_SALES, JSON.stringify([]));
-    if(!localStorage.getItem(LS_VISITS)) localStorage.setItem(LS_VISITS, JSON.stringify([]));
   }
 
-  // -----------------------------
-  // LOGIN
-  // -----------------------------
-  function login(uid, pwd){
-    uid = uid.toUpperCase();
+  // --------------------------------
+  // LOGIN FUNCTION
+  // --------------------------------
+  function login(userid, password) {
     const users = JSON.parse(localStorage.getItem(LS_USERS) || '{}');
-    if(users[uid] && users[uid].password === pwd){
-      localStorage.setItem('ts_current_user', uid);
-      if(users[uid].role === 'admin'){
-        window.location.href = './admin.html';
-      } else {
-        window.location.href = './sales-order.html';
-      }
+    const user = users[userid];
+    if (!user || user.password !== password) {
+      alert('Invalid user ID or password');
+      return;
+    }
+    localStorage.setItem(LS_LOGGEDIN, JSON.stringify(user));
+    if (user.role === 'admin') {
+      window.location.href = 'admin.html';
     } else {
-      const msg = document.getElementById('msg');
-      if(msg) msg.innerText = 'Invalid User ID or Password';
+      window.location.href = 'sales-order.html';
     }
   }
 
-  // -----------------------------
-  // ADMIN DASHBOARD
-  // -----------------------------
-  function initAdmin(){
-    loadDefaults();
-    renderDistricts();
-    renderTowns();
-    renderDistributors();
-    renderOutlets();
-    renderItems();
-    renderUserAssignments();
-
-    document.getElementById('addDistrictBtn').onclick = () => {
-      const name = document.getElementById('newDistrict').value.trim();
-      if(!name) return alert('Enter district name');
-      const arr = JSON.parse(localStorage.getItem(LS_DISTRICTS));
-      arr.push({ id: 'D' + (arr.length + 1), name });
-      localStorage.setItem(LS_DISTRICTS, JSON.stringify(arr));
-      renderDistricts();
-      renderTowns();
-    };
-
-    document.getElementById('addTownBtn').onclick = () => {
-      const town = document.getElementById('newTown').value.trim();
-      const district = document.getElementById('districtForTown').value;
-      if(!town || !district) return alert('Select district and enter town');
-      const arr = JSON.parse(localStorage.getItem(LS_TOWNS));
-      arr.push({ id: 'T' + (arr.length + 1), name: town, district });
-      localStorage.setItem(LS_TOWNS, JSON.stringify(arr));
-      renderTowns();
-      renderDistributors();
-    };
-
-    document.getElementById('addDistributorBtn').onclick = () => {
-      const name = document.getElementById('newDistributor').value.trim();
-      const town = document.getElementById('townForDistributor').value;
-      if(!name || !town) return alert('Enter distributor name and select town');
-      const arr = JSON.parse(localStorage.getItem(LS_DISTRIBUTORS));
-      arr.push({ id: 'DR' + (arr.length + 1), name, town });
-      localStorage.setItem(LS_DISTRIBUTORS, JSON.stringify(arr));
-      renderDistributors();
-    };
-
-    document.getElementById('addOutletBtn').onclick = () => {
-      const name = document.getElementById('newOutlet').value.trim();
-      const owner = document.getElementById('outletOwner').value.trim();
-      const whats = document.getElementById('outletWhats').value.trim();
-      const town = document.getElementById('outletTown').value;
-      const checks = Array.from(document.querySelectorAll('#distributorCheckboxes input[type=checkbox]:checked')).map(ch => ch.value);
-      if(!name || !town || checks.length === 0) return alert('Enter all outlet details and select distributors');
-      const arr = JSON.parse(localStorage.getItem(LS_OUTLETS));
-      arr.push({ id: 'O' + (arr.length + 1), name, owner, whats, town, distributors: checks });
-      localStorage.setItem(LS_OUTLETS, JSON.stringify(arr));
-      renderOutlets();
-    };
-
-    document.getElementById('addItemBtn').onclick = () => {
-      const name = document.getElementById('newItem').value.trim();
-      if(!name) return alert('Enter item name');
-      const arr = JSON.parse(localStorage.getItem(LS_ITEMS));
-      arr.push({ id: 'I' + (arr.length + 1), name });
-      localStorage.setItem(LS_ITEMS, JSON.stringify(arr));
-      renderItems();
-    };
-
-    document.getElementById('exportSales').onclick = () => {
-      const sales = JSON.parse(localStorage.getItem(LS_SALES) || '[]');
-      const ws = XLSX.utils.json_to_sheet(sales);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Sales');
-      XLSX.writeFile(wb, 'sales_orders.xlsx');
-    };
-
-    document.getElementById('exportVisits').onclick = () => {
-      const visits = JSON.parse(localStorage.getItem(LS_VISITS) || '[]');
-      const ws = XLSX.utils.json_to_sheet(visits);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Visits');
-      XLSX.writeFile(wb, 'outlet_visits.xlsx');
-    };
-  }
-
-  function renderDistricts(){
-    const arr = JSON.parse(localStorage.getItem(LS_DISTRICTS) || '[]');
-    const ul = document.getElementById('districtList');
-    const sel = document.getElementById('districtForTown');
-    if(ul) ul.innerHTML = '';
-    if(sel) sel.innerHTML = '';
-    arr.forEach(d => {
-      if(ul){ const li = document.createElement('li'); li.textContent = d.name; ul.appendChild(li); }
-      if(sel){ const opt = document.createElement('option'); opt.value = d.id; opt.textContent = d.name; sel.appendChild(opt); }
-    });
-  }
-
-  function renderTowns(){
-    const arr = JSON.parse(localStorage.getItem(LS_TOWNS) || '[]');
-    const ul = document.getElementById('townList');
-    const sel1 = document.getElementById('townForDistributor');
-    const sel2 = document.getElementById('outletTown');
-    if(ul) ul.innerHTML = '';
-    if(sel1) sel1.innerHTML = '';
-    if(sel2) sel2.innerHTML = '';
-    arr.forEach(t => {
-      if(ul){ const li = document.createElement('li'); li.textContent = t.name; ul.appendChild(li); }
-      if(sel1){ const opt = document.createElement('option'); opt.value = t.id; opt.textContent = t.name; sel1.appendChild(opt); }
-      if(sel2){ const opt2 = document.createElement('option'); opt2.value = t.id; opt2.textContent = t.name; sel2.appendChild(opt2); }
-    });
-  }
-
-  function renderDistributors(){
-    const arr = JSON.parse(localStorage.getItem(LS_DISTRIBUTORS) || '[]');
-    const ul = document.getElementById('distributorList');
-    const box = document.getElementById('distributorCheckboxes');
-    if(ul) ul.innerHTML = '';
-    if(box) box.innerHTML = '';
-    arr.forEach(d => {
-      if(ul){ const li = document.createElement('li'); li.textContent = d.name; ul.appendChild(li); }
-      if(box){
-        const id = 'cb' + d.id;
-        const cb = document.createElement('input'); cb.type = 'checkbox'; cb.id = id; cb.value = d.id;
-        const lbl = document.createElement('label'); lbl.htmlFor = id; lbl.textContent = d.name;
-        box.appendChild(cb); box.appendChild(lbl); box.appendChild(document.createElement('br'));
-      }
-    });
-  }
-
-  function renderOutlets(){
-    const arr = JSON.parse(localStorage.getItem(LS_OUTLETS) || '[]');
-    const ul = document.getElementById('outletList');
-    if(!ul) return;
-    ul.innerHTML = '';
-    arr.forEach(o => {
-      const li = document.createElement('li');
-      li.textContent = `${o.name} - ${o.owner} (${o.distributors.join(',')})`;
-      ul.appendChild(li);
-    });
-  }
-
-  function renderItems(){
-    const arr = JSON.parse(localStorage.getItem(LS_ITEMS) || '[]');
-    const ul = document.getElementById('itemList');
-    if(!ul) return;
-    ul.innerHTML = '';
-    arr.forEach(i => {
-      const li = document.createElement('li');
-      li.textContent = i.name;
-      ul.appendChild(li);
-    });
-  }
-
-  function renderUserAssignments(){
-    const users = JSON.parse(localStorage.getItem(LS_USERS) || '{}');
-    const div = document.getElementById('userAssignments');
-    if(!div) return;
-    div.innerHTML = '';
-    Object.keys(users).forEach(u => {
-      if(users[u].role === 'exec'){
-        const p = document.createElement('p');
-        const assigned = (users[u].assignedDistricts || []).join(', ');
-        p.textContent = `${u} — Districts: ${assigned || 'None'}`;
-        div.appendChild(p);
-      }
-    });
-  }
-
-  // -----------------------------
-  // SALES ORDER FORM
-  // -----------------------------
-  function initSalesForm(){
-    loadDefaults();
-    const current = localStorage.getItem('ts_current_user');
-    const users = JSON.parse(localStorage.getItem(LS_USERS) || '{}');
-    const assigned = (users[current] && users[current].assignedDistricts) || [];
-    const allDistricts = JSON.parse(localStorage.getItem(LS_DISTRICTS) || '[]');
-    const districts = assigned.length ? allDistricts.filter(d => assigned.includes(d.id)) : allDistricts;
-
-    const districtSel = document.getElementById('districtSelect');
-    districtSel.innerHTML = '';
-    districts.forEach(d => {
-      const opt = document.createElement('option');
-      opt.value = d.id;
-      opt.textContent = d.name;
-      districtSel.appendChild(opt);
-    });
-
-    districtSel.onchange = () => fillTowns(districtSel.value);
-    if(districtSel.options.length) fillTowns(districtSel.value);
-
-    function fillTowns(did){
-      const towns = JSON.parse(localStorage.getItem(LS_TOWNS) || '[]').filter(t => t.district === did);
-      const tsel = document.getElementById('townSelect');
-      tsel.innerHTML = '';
-      towns.forEach(t => {
-        const opt = document.createElement('option');
-        opt.value = t.id;
-        opt.textContent = t.name;
-        tsel.appendChild(opt);
-      });
-      if(tsel.options.length) fillDistributors(tsel.value);
-      tsel.onchange = () => fillDistributors(tsel.value);
-    }
-
-    function fillDistributors(tid){
-      const dists = JSON.parse(localStorage.getItem(LS_DISTRIBUTORS) || '[]').filter(d => d.town === tid);
-      const dsel = document.getElementById('distributorSelect');
-      dsel.innerHTML = '';
-      dists.forEach(d => {
-        const opt = document.createElement('option');
-        opt.value = d.id;
-        opt.textContent = d.name;
-        dsel.appendChild(opt);
-      });
-      if(dsel.options.length) fillOutlets(dsel.value);
-      dsel.onchange = () => fillOutlets(dsel.value);
-    }
-
-    function fillOutlets(drid){
-      const outs = JSON.parse(localStorage.getItem(LS_OUTLETS) || '[]').filter(o => o.distributors.includes(drid));
-      const osel = document.getElementById('outletSelect');
-      osel.innerHTML = '';
-      outs.forEach(o => {
-        const opt = document.createElement('option');
-        opt.value = o.id;
-        opt.textContent = o.name;
-        osel.appendChild(opt);
-      });
-      if(osel.options.length) fillOutletDetails(osel.value);
-      osel.onchange = () => fillOutletDetails(osel.value);
-    }
-
-    function fillOutletDetails(oid){
-      const outs = JSON.parse(localStorage.getItem(LS_OUTLETS) || '[]');
-      const o = outs.find(x => x.id === oid);
-      document.getElementById('propName').value = o?.owner || '';
-      document.getElementById('propWhats').value = o?.whats || '';
-      document.getElementById('propLoc').value = o?.location || '';
-    }
-
-    // Load items
+  // --------------------------------
+  // ADMIN PAGE INITIALIZATION
+  // --------------------------------
+  function initAdmin() {
     const items = JSON.parse(localStorage.getItem(LS_ITEMS) || '[]');
-    const itemsSel = document.getElementById('itemsSelect');
-    itemsSel.innerHTML = '';
-    items.forEach(i => {
+    const itemList = document.getElementById('itemList');
+    const addItemBtn = document.getElementById('addItemBtn');
+    const itemNameInput = document.getElementById('itemName');
+
+    function renderItems() {
+      itemList.innerHTML = '';
+      items.forEach((item, i) => {
+        const li = document.createElement('li');
+        li.textContent = `${i + 1}. ${item}`;
+        itemList.appendChild(li);
+      });
+    }
+
+    addItemBtn.onclick = () => {
+      const val = itemNameInput.value.trim();
+      if (val) {
+        items.push(val);
+        localStorage.setItem(LS_ITEMS, JSON.stringify(items));
+        itemNameInput.value = '';
+        renderItems();
+      }
+    };
+
+    renderItems();
+  }
+
+  // --------------------------------
+  // SALES ORDER FORM INITIALIZATION
+  // --------------------------------
+  function initSalesForm() {
+    const districts = JSON.parse(localStorage.getItem(LS_DISTRICTS) || '[]');
+    const distributors = JSON.parse(localStorage.getItem(LS_DISTRIBUTORS) || '[]');
+    const outlets = JSON.parse(localStorage.getItem(LS_OUTLETS) || '[]');
+    const items = JSON.parse(localStorage.getItem(LS_ITEMS) || '[]');
+
+    const distSel = document.getElementById('district');
+    const distrSel = document.getElementById('distributor');
+    const outletSel = document.getElementById('outlet');
+    const gradeSel = document.getElementById('grade');
+    const submitBtn = document.getElementById('submitOrder');
+
+    // Populate Districts
+    distSel.innerHTML = '<option value="">Select District</option>';
+    districts.forEach(d => {
       const opt = document.createElement('option');
-      opt.value = i.id;
-      opt.textContent = i.name;
-      itemsSel.appendChild(opt);
+      opt.value = d.name;
+      opt.textContent = d.name;
+      distSel.appendChild(opt);
     });
 
-    document.getElementById('orderForm').onsubmit = function(e){
-      e.preventDefault();
-      const sales = JSON.parse(localStorage.getItem(LS_SALES) || '[]');
-      const payload = {
-        id: 'S' + (sales.length + 1),
-        user: current,
-        district: document.getElementById('districtSelect').value,
-        town: document.getElementById('townSelect').value,
-        distributor: document.getElementById('distributorSelect').value,
-        outlet: document.getElementById('outletSelect').value,
-        items: Array.from(document.getElementById('itemsSelect').selectedOptions).map(o => o.value),
-        grade: document.getElementById('gradeSelect').value,
-        datetime: new Date().toISOString()
+    // When District changes, load Distributors
+    distSel.onchange = () => {
+      const selected = distSel.value;
+      distrSel.innerHTML = '<option value="">Select Distributor</option>';
+      const filtered = distributors.filter(x => x.district === selected);
+      filtered.forEach(x => {
+        const opt = document.createElement('option');
+        opt.value = x.name;
+        opt.textContent = x.name;
+        distrSel.appendChild(opt);
+      });
+    };
+
+    // When Distributor changes, load Outlets
+    distrSel.onchange = () => {
+      const selected = distrSel.value;
+      outletSel.innerHTML = '<option value="">Select Outlet</option>';
+      const filtered = outlets.filter(x => x.distributor === selected);
+      filtered.forEach(x => {
+        const opt = document.createElement('option');
+        opt.value = x.name;
+        opt.textContent = x.name;
+        outletSel.appendChild(opt);
+      });
+    };
+
+    // Grade Options
+    ['A (10+ cartons)', 'B (5-10 cartons)', 'C (1-5 cartons)'].forEach(g => {
+      const opt = document.createElement('option');
+      opt.value = g;
+      opt.textContent = g;
+      gradeSel.appendChild(opt);
+    });
+
+    // Submit Form
+    submitBtn.onclick = () => {
+      const order = {
+        district: distSel.value,
+        distributor: distrSel.value,
+        outlet: outletSel.value,
+        grade: gradeSel.value,
+        date: new Date().toISOString()
       };
-      sales.push(payload);
-      localStorage.setItem(LS_SALES, JSON.stringify(sales));
-      alert('Order saved successfully');
-      this.reset();
+      const orders = JSON.parse(localStorage.getItem(LS_VISITS) || '[]');
+      orders.push(order);
+      localStorage.setItem(LS_VISITS, JSON.stringify(orders));
+      alert('✅ Order recorded successfully.');
     };
   }
 
-  // -----------------------------
+  // --------------------------------
   // OUTLET VISIT FORM
-  // -----------------------------
-  function initVisitForm(){
-    loadDefaults();
-    const dSel = document.getElementById('v_district');
-    const districts = JSON.parse(localStorage.getItem(LS_DISTRICTS) || '[]');
-    dSel.innerHTML = '';
-    districts.forEach(d => {
+  // --------------------------------
+  function initVisitForm() {
+    const outlets = JSON.parse(localStorage.getItem(LS_OUTLETS) || '[]');
+    const outletSel = document.getElementById('v_outlet');
+    const visitForm = document.getElementById('visitForm');
+
+    outletSel.innerHTML = '<option value="">Select Outlet</option>';
+    outlets.forEach(o => {
       const opt = document.createElement('option');
-      opt.value = d.id;
-      opt.textContent = d.name;
-      dSel.appendChild(opt);
+      opt.value = o.name;
+      opt.textContent = o.name;
+      outletSel.appendChild(opt);
     });
-    dSel.onchange = () => fillTowns(dSel.value);
-    if(dSel.options.length) fillTowns(dSel.value);
 
-    function fillTowns(did){
-      const towns = JSON.parse(localStorage.getItem(LS_TOWNS) || '[]').filter(t => t.district === did);
-      const tsel = document.getElementById('v_town');
-      tsel.innerHTML = '';
-      towns.forEach(t => {
-        const opt = document.createElement('option');
-        opt.value = t.id;
-        opt.textContent = t.name;
-        tsel.appendChild(opt);
-      });
-      if(tsel.options.length) fillDistributors(tsel.value);
-      tsel.onchange = () => fillDistributors(tsel.value);
-    }
-
-    function fillDistributors(tid){
-      const dists = JSON.parse(localStorage.getItem(LS_DISTRIBUTORS) || '[]').filter(d => d.town === tid);
-      const dsel = document.getElementById('v_distributor');
-      dsel.innerHTML = '';
-      dists.forEach(d => {
-        const opt = document.createElement('option');
-        opt.value = d.id;
-        opt.textContent = d.name;
-        dsel.appendChild(opt);
-      });
-      if(dsel.options.length) fillOutlets(dsel.value);
-      dsel.onchange = () => fillOutlets(dsel.value);
-    }
-
-    function fillOutlets(drid){
-      const outs = JSON.parse(localStorage.getItem(LS_OUTLETS) || '[]').filter(o => o.distributors.includes(drid));
-      const osel = document.getElementById('v_outlet');
-      osel.innerHTML = '';
-      outs.forEach(o => {
-        const opt = document.createElement('option');
-        opt.value = o.id;
-        opt.textContent = o.name;
-        osel.appendChild(opt);
-      });
-    }
-
-    document.getElementById('visitForm').onsubmit = function(e){
+    visitForm.onsubmit = function(e) {
       e.preventDefault();
       const visits = JSON.parse(localStorage.getItem(LS_VISITS) || '[]');
       const payload = {
-        id: 'V' + (visits.length + 1),
-        user: localStorage.getItem('ts_current_user'),
-        district: document.getElementById('v_district').value,
-        town: document.getElementById('v_town').value,
-        distributor: document.getElementById('v_distributor').value,
         outlet: document.getElementById('v_outlet').value,
-        orderTaken: document.getElementById('v_order').value,
-        stock: document.getElementById('v_stock').value,
         display: document.getElementById('v_display').value,
         remarks: document.getElementById('v_remarks').value,
         datetime: new Date().toISOString()
@@ -438,4 +223,3 @@ document.addEventListener('DOMContentLoaded', function(){
     app.initVisitForm();
   }
 });
-

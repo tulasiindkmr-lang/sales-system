@@ -103,7 +103,6 @@ const app = (() => {
     const gradeSel = document.getElementById('grade');
     const submitBtn = document.getElementById('submitOrder');
 
-    // Populate Districts
     distSel.innerHTML = '<option value="">Select District</option>';
     districts.forEach(d => {
       const opt = document.createElement('option');
@@ -112,7 +111,6 @@ const app = (() => {
       distSel.appendChild(opt);
     });
 
-    // When District changes, load Distributors
     distSel.onchange = () => {
       const selected = distSel.value;
       distrSel.innerHTML = '<option value="">Select Distributor</option>';
@@ -125,7 +123,6 @@ const app = (() => {
       });
     };
 
-    // When Distributor changes, load Outlets
     distrSel.onchange = () => {
       const selected = distrSel.value;
       outletSel.innerHTML = '<option value="">Select Outlet</option>';
@@ -138,7 +135,6 @@ const app = (() => {
       });
     };
 
-    // Grade Options
     ['A (10+ cartons)', 'B (5-10 cartons)', 'C (1-5 cartons)'].forEach(g => {
       const opt = document.createElement('option');
       opt.value = g;
@@ -146,7 +142,6 @@ const app = (() => {
       gradeSel.appendChild(opt);
     });
 
-    // Submit Form
     submitBtn.onclick = () => {
       const order = {
         district: distSel.value,
@@ -223,3 +218,4 @@ document.addEventListener('DOMContentLoaded', function(){
     app.initVisitForm();
   }
 });
+

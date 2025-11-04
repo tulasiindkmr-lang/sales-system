@@ -1,0 +1,68 @@
+<!doctype html>
+<ul id="districtList"></ul>
+</div>
+
+
+<div class="section">
+<h3>Towns</h3>
+<div>
+<select id="districtForTown"></select>
+<input id="newTown" placeholder="Town name"><button id="addTownBtn">Add Town</button>
+</div>
+<ul id="townList"></ul>
+</div>
+
+
+<div class="section">
+<h3>Distributors</h3>
+<div>
+<select id="townForDistributor"></select>
+<input id="newDistributor" placeholder="Distributor name"><button id="addDistributorBtn">Add Distributor</button>
+</div>
+<ul id="distributorList"></ul>
+</div>
+
+
+<div class="section">
+<h3>Outlets (Link to distributors)</h3>
+<div>
+<input id="newOutlet" placeholder="Outlet name">
+<input id="outletOwner" placeholder="Proprietor">
+<input id="outletWhats" placeholder="WhatsApp">
+<select id="outletTown"></select>
+<div id="distributorCheckboxes"></div>
+<button id="addOutletBtn">Add Outlet</button>
+</div>
+<ul id="outletList"></ul>
+</div>
+
+
+<div class="section">
+<h3>Items Master</h3>
+<div>
+<input id="newItem" placeholder="Item name"><button id="addItemBtn">Add Item</button>
+</div>
+<ul id="itemList"></ul>
+</div>
+
+
+<div class="section">
+<h3>User District Assignments</h3>
+<div id="userAssignments"></div>
+</div>
+
+
+<div class="section">
+<h3>Reports</h3>
+<button id="exportSales">Export Sales Orders</button>
+<button id="exportVisits">Export Outlet Visits</button>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="scripts/app.js"></script>
+<script>
+if(window.app && app.initAdmin) app.initAdmin();
+</script>
+</body>
+</html>

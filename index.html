@@ -1,4 +1,4 @@
- <!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -10,7 +10,7 @@
   <div id="app" class="max-w-xl mx-auto p-4">
     <header class="mb-4">
       <h1 class="text-2xl font-bold">DSR Secondary Sales</h1>
-      <p class="text-sm text-gray-600">Mobile Form + Admin Panel</p>
+      <p class="text-sm text-gray-600">Mobile Form & Admin Panel</p>
     </header>
 
     <nav class="mb-4 flex gap-2">
@@ -20,7 +20,9 @@
 
     <main id="main"></main>
 
-    <footer class="mt-6 text-xs text-gray-500">Data stored locally for demo; connect to backend later if needed.</footer>
+    <footer class="mt-6 text-xs text-gray-500 text-center">
+      © 2025 DSR. Local demo version.
+    </footer>
   </div>
 
 <script>
@@ -56,12 +58,12 @@ function renderSalesLogin() {
     <h2 class="font-semibold mb-2">Salesman Login</h2>
     <form id="sales-login" class="space-y-3">
       <div>
-        <label class="text-xs">Username</label>
-        <input id="sales-user" required class="w-full border rounded p-2" placeholder="stidsr">
+        <label class="text-xs">Executive Login Name</label>
+        <input id="sales-user" required class="w-full border rounded p-2" placeholder="Enter your login name">
       </div>
       <div>
-        <label class="text-xs">Password</label>
-        <input id="sales-pass" type="password" required class="w-full border rounded p-2" placeholder="dsrlite1">
+        <label class="text-xs">Access Code</label>
+        <input id="sales-pass" type="password" required class="w-full border rounded p-2" placeholder="Enter access code">
       </div>
       <button type="submit" class="w-full bg-blue-600 text-white rounded p-2">Login</button>
     </form>
@@ -72,7 +74,7 @@ function renderSalesLogin() {
     const u = document.getElementById('sales-user').value;
     const p = document.getElementById('sales-pass').value;
     if (validateSalesman(u, p)) renderSalesForm();
-    else alert('Invalid credentials');
+    else alert('Invalid login. Please check your details.');
   }
 }
 

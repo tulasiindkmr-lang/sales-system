@@ -1,44 +1,33 @@
-<!doctype html>
+   <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>DSR Secondary Sales - Mobile Form + Admin</title>
+  <title>DSR Secondary Sales</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 min-h-screen">
   <div id="app" class="max-w-xl mx-auto p-4">
     <header class="mb-4">
       <h1 class="text-2xl font-bold">DSR Secondary Sales</h1>
-      <p class="text-sm text-gray-600">Mobile-first form + Admin panel (single file)</p>
+      <p class="text-sm text-gray-600">Mobile-first form + Admin panel</p>
     </header>
 
     <nav class="mb-4 flex gap-2">
-      <button id="nav-submit" class="flex-1 btn bg-white border p-2 rounded">Executive Login / Submit</button>
+      <button id="nav-submit" class="flex-1 btn bg-white border p-2 rounded">Salesman Login</button>
       <button id="nav-admin" class="flex-1 btn bg-white border p-2 rounded">Admin Panel</button>
     </nav>
 
-    <main id="main">
-      <!-- content injected by JS -->
-    </main>
+    <main id="main"></main>
 
-    <footer class="mt-6 text-xs text-gray-500">Built for GitHub Pages hosting. Data stored in browser localStorage (or export to CSV). Not a secure server-backed system.</footer>
+    <footer class="mt-6 text-xs text-gray-500">Data stored locally (for demo). For production, connect to backend or Google Sheet.</footer>
   </div>
 
 <script>
-/* ======= Simple DSR app (single-file) =======
- - Mobile-first form for executives (requires executive login)
- - Admin panel behind an admin username/password
- - Data stored in localStorage under 'dsr_entries' (array)
- - Admin can create executive accounts (stored in localStorage 'dsr_executives')
- - CSV export available (Excel-compatible)
- - Grading auto-calculated from 'cottons' field
-
- NOTE: This is a static, client-side-only prototype. Embedding credentials in JS/localStorage is insecure for production.
-*/
-
 const ADMIN_USERNAME = 'csdsradmin';
 const ADMIN_PASSWORD = 'Csr@dsr2500';
+const SALESMAN_USERNAME = 'stidsr';
+const SALESMAN_PASSWORD = 'dsrlite1';
 
 const selectors = {
   main: document.getElementById('main'),
@@ -46,77 +35,43 @@ const selectors = {
   navAdmin: document.getElementById('nav-admin')
 }
 
-// Utilities for storage
-function loadEntries(){
-  try{ return JSON.parse(localStorage.getItem('dsr_entries')||'[]') }catch(e){return []}
-}
+function loadEntries(){ try{ return JSON.parse(localStorage.getItem('dsr_entries')||'[]') }catch(e){return []} }
 function saveEntries(arr){ localStorage.setItem('dsr_entries', JSON.stringify(arr)) }
-function loadExecutives(){
-  try{ return JSON.parse(localStorage.getItem('dsr_executives')||'[]') }catch(e){return []}
-}
-function saveExecutives(arr){ localStorage.setItem('dsr_executives', JSON.stringify(arr)) }
+function gradeFromCottons(n){ n = Number(n)||0; if(n>=10) return 'A'; if(n>=5) return 'B'; if(n>=1) return 'C'; return 'N/A'; }
+function downloadCSV(filename, rows){ const header = Object.keys(rows[0]||{}).join(',')+'\n'; const body = rows.map(r=>Object.values(r).map(v=>'"'+String(v||'').replace(/"/g,'""')+'"').join(',')).join('\n'); const blob=new Blob([header+body],{type:'text/csv;charset=utf-8;'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url); }
 
-// Default: create admin account? admin is a hardcoded check. Executives created via admin panel.
-
-// grading by cotton count
-function gradeFromCottons(n){
-  n = Number(n) || 0;
-  if(n >= 10) return 'A';
-  if(n >= 5) return 'B';
-  if(n >= 1) return 'C';
-  return 'N/A';
-}
-
-// CSV export
-function downloadCSV(filename, rows){
-  const header = Object.keys(rows[0] || {}).join(',') + '\n';
-  const body = rows.map(r => Object.values(r).map(v => '"'+String(v||'').replace(/"/g,'""')+'"').join(',')).join('\n');
-  const csv = header + body;
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
-  URL.revokeObjectURL(url);
-}
-
-// render functions
-function renderExecutiveLogin(){
+function renderSalesmanLogin(){
   selectors.main.innerHTML = `
   <section class="bg-white p-4 rounded shadow-sm">
-    <h2 class="font-semibold mb-2">Executive Login</h2>
-    <form id="exec-login-form" class="space-y-3">
+    <h2 class="font-semibold mb-2">Salesman Login</h2>
+    <form id="sales-login-form" class="space-y-3">
       <div>
-        <label class="text-xs">Executive Username</label>
-        <input id="exec-username" required class="w-full border rounded p-2" />
+        <label class="text-xs">Username</label>
+        <input id="sales-username" required class="w-full border rounded p-2" />
       </div>
       <div>
         <label class="text-xs">Password</label>
-        <input id="exec-password" type="password" required class="w-full border rounded p-2" />
+        <input id="sales-password" type="password" required class="w-full border rounded p-2" />
       </div>
-      <div class="flex gap-2">
-        <button type="submit" class="flex-1 p-2 bg-blue-600 text-white rounded">Login</button>
-        <button id="exec-guest" type="button" class="flex-1 p-2 border rounded">Guest Submit</button>
+      <div>
+        <button type="submit" class="w-full p-2 bg-blue-600 text-white rounded">Login</button>
       </div>
     </form>
-  </section>
-  `;
+  </section>`;
 
-  document.getElementById('exec-login-form').onsubmit = (e)=>{
+  document.getElementById('sales-login-form').onsubmit = (e)=>{
     e.preventDefault();
-    const u = document.getElementById('exec-username').value.trim();
-    const p = document.getElementById('exec-password').value;
-    const execs = loadExecutives();
-    const found = execs.find(x=>x.username===u && x.password===p);
-    if(found){
-      renderSubmitForm(found.username);
+    const u = document.getElementById('sales-username').value.trim().toLowerCase();
+    const p = document.getElementById('sales-password').value.trim().toLowerCase();
+    if(u === SALESMAN_USERNAME.toLowerCase() && p === SALESMAN_PASSWORD.toLowerCase()){
+      renderSubmitForm(u);
     } else {
-      alert('Invalid executive credentials. Ask admin to create account.');
+      alert('Invalid salesman credentials');
     }
   }
-  document.getElementById('exec-guest').onclick = ()=> renderSubmitForm(null);
 }
 
-function renderSubmitForm(loggedExec){
+function renderSubmitForm(username){
   selectors.main.innerHTML = `
   <section class="bg-white p-4 rounded shadow-sm">
     <h2 class="font-semibold mb-2">Outlet Sales Submission</h2>
@@ -127,7 +82,7 @@ function renderSubmitForm(loggedExec){
       </div>
       <div>
         <label class="text-xs">Executive Name</label>
-        <input id="fld-exec" value="${loggedExec||''}" ${loggedExec? 'readonly':''} required class="w-full border rounded p-2" />
+        <input id="fld-exec" value="${username}" readonly required class="w-full border rounded p-2 bg-gray-100" />
       </div>
       <div>
         <label class="text-xs">Distributor Name</label>
@@ -155,12 +110,10 @@ function renderSubmitForm(loggedExec){
         <label class="text-xs">WhatsApp Number</label>
         <input id="fld-whatsapp" class="w-full border rounded p-2" inputmode="tel" />
       </div>
-
       <div>
         <label class="text-xs">Select running items for outlet (choose multiple)</label>
-        <div id="items-container" class="grid grid-cols-2 gap-2 mt-2"></div>
+        <div id="items-container" class="grid grid-cols-1 gap-2 mt-2"></div>
       </div>
-
       <div class="grid grid-cols-2 gap-2">
         <div>
           <label class="text-xs">Cottons (numeric)</label>
@@ -171,28 +124,30 @@ function renderSubmitForm(loggedExec){
           <input id="fld-grade" readonly class="w-full border rounded p-2 bg-gray-100" />
         </div>
       </div>
-
       <div>
         <label class="text-xs">Remarks</label>
         <textarea id="fld-remarks" class="w-full border rounded p-2" rows="2"></textarea>
       </div>
-
       <div class="flex gap-2">
         <button type="submit" class="flex-1 p-2 bg-green-600 text-white rounded">Submit</button>
         <button id="clear-form" type="button" class="flex-1 p-2 border rounded">Clear</button>
       </div>
     </form>
-  </section>
-  `;
+  </section>`;
 
-  // sample items - in a real app these could be configurable from admin
-  const items = ['Item A','Item B','Item C','Item D','Item E','Item F'];
+  const items = [
+    'TASTY GOLD NATURAL GN',
+    'TASTY GOLD LITE SFR',
+    'TASTY GOLD RICH RBR',
+    'TASTY GOLD GN MULTI SOURCE',
+    'DEEPAM OIL'
+  ];
   const container = document.getElementById('items-container');
-  container.innerHTML = items.map((it,i)=>`<label class="flex items-center gap-2"><input type="checkbox" value="${it}" class="item-chk" /> <span class="text-sm">${it}</span></label>`).join('');
+  container.innerHTML = items.map(it=>`<label class='flex items-center gap-2'><input type='checkbox' value='${it}' class='item-chk'/> <span class='text-sm'>${it}</span></label>`).join('');
 
   const fldCottons = document.getElementById('fld-cottons');
   const fldGrade = document.getElementById('fld-grade');
-  fldCottons.oninput = ()=>{ fldGrade.value = gradeFromCottons(fldCottons.value) }
+  fldCottons.oninput = ()=> fldGrade.value = gradeFromCottons(fldCottons.value);
 
   document.getElementById('dsr-form').onsubmit = (e)=>{
     e.preventDefault();
@@ -238,8 +193,7 @@ function renderAdminLogin(){
         <button type="submit" class="w-full p-2 bg-indigo-600 text-white rounded">Login</button>
       </div>
     </form>
-  </section>
-  `;
+  </section>`;
 
   document.getElementById('admin-login').onsubmit = (e)=>{
     e.preventDefault();
@@ -262,73 +216,26 @@ function renderAdminPanel(){
       <button id="btn-refresh" class="p-2 border rounded">Refresh</button>
       <button id="btn-export" class="p-2 border rounded">Export CSV</button>
     </div>
-
-    <div class="mt-2">
-      <h3 class="font-medium">Executives (create/manage)</h3>
-      <form id="exec-create" class="grid grid-cols-2 gap-2 mt-2">
-        <input id="new-exec-user" placeholder="username" class="border rounded p-2" />
-        <input id="new-exec-pass" placeholder="password" class="border rounded p-2" />
-        <button type="submit" class="col-span-2 p-2 bg-green-600 text-white rounded">Create Executive</button>
-      </form>
-      <div id="exec-list" class="mt-2 text-sm"></div>
-    </div>
-
     <div>
       <h3 class="font-medium mt-2">Submitted Entries</h3>
       <div id="entries-list" class="mt-2 text-sm"></div>
     </div>
-  </section>
-  `;
-
-  function drawExecs(){
-    const execs = loadExecutives();
-    const cont = document.getElementById('exec-list');
-    if(execs.length===0){ cont.innerHTML = '<div class="text-gray-500">No executives yet</div>'; return }
-    cont.innerHTML = execs.map((e,i)=>`<div class="p-2 border rounded mb-1 flex justify-between items-center"><div><strong>${e.username}</strong></div><div><button data-i="${i}" class="btn-del p-1 border rounded">Delete</button></div></div>`).join('');
-    Array.from(document.querySelectorAll('.btn-del')).forEach(b=> b.onclick = ()=>{
-      const i = Number(b.getAttribute('data-i'));
-      const arr = loadExecutives(); arr.splice(i,1); saveExecutives(arr); drawExecs();
-    })
-  }
-  drawExecs();
-
-  document.getElementById('exec-create').onsubmit = (e)=>{
-    e.preventDefault();
-    const u = document.getElementById('new-exec-user').value.trim();
-    const p = document.getElementById('new-exec-pass').value;
-    if(!u||!p){ alert('provide username & password'); return }
-    const exs = loadExecutives();
-    if(exs.find(x=>x.username===u)){ alert('username exists'); return }
-    exs.push({username:u,password:p}); saveExecutives(exs); drawExecs(); e.target.reset();
-    alert('Executive created. Share credentials with the executive.');
-  }
+  </section>`;
 
   function drawEntries(){
     const arr = loadEntries();
     const el = document.getElementById('entries-list');
     if(arr.length===0){ el.innerHTML = '<div class="text-gray-500">No submissions yet</div>'; return }
-    el.innerHTML = `<div class="overflow-auto max-h-64">
-      <table class="w-full text-xs table-auto border-collapse">
-        <thead class="bg-gray-100 sticky top-0"><tr>${Object.keys(arr[0]).map(k=>`<th class="p-1 text-left border">${k}</th>`).join('')}</tr></thead>
-        <tbody>${arr.map(r=>`<tr class="border-t">${Object.values(r).map(v=>`<td class="p-1 align-top border">${String(v)}</td>`).join('')}</tr>`).join('')}</tbody>
-      </table>
-    </div>`;
+    el.innerHTML = `<div class="overflow-auto max-h-96"><table class="w-full text-xs border-collapse"><thead class="bg-gray-100 sticky top-0"><tr>${Object.keys(arr[0]).map(k=>`<th class='p-1 text-left border'>${k}</th>`).join('')}</tr></thead><tbody>${arr.map(r=>`<tr class='border-t'>${Object.values(r).map(v=>`<td class='p-1 border align-top'>${String(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
   }
   drawEntries();
-
-  document.getElementById('btn-refresh').onclick = ()=>{ drawExecs(); drawEntries(); }
-  document.getElementById('btn-export').onclick = ()=>{
-    const arr = loadEntries();
-    if(arr.length===0){ alert('No data to export'); return }
-    downloadCSV('dsr_export_' + new Date().toISOString().slice(0,10) + '.csv', arr);
-  }
+  document.getElementById('btn-refresh').onclick = drawEntries;
+  document.getElementById('btn-export').onclick = ()=>{ const arr=loadEntries(); if(arr.length===0){alert('No data');return;} downloadCSV('dsr_export_'+new Date().toISOString().slice(0,10)+'.csv', arr); }
 }
 
-// initial route
-selectors.navSubmit.onclick = renderExecutiveLogin;
+selectors.navSubmit.onclick = renderSalesmanLogin;
 selectors.navAdmin.onclick = renderAdminLogin;
-renderExecutiveLogin();
-
+renderSalesmanLogin();
 </script>
 </body>
 </html>

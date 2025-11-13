@@ -1,4 +1,4 @@
-   <!doctype html>
+ <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -26,8 +26,22 @@
 <script>
 const ADMIN_USERNAME = 'csdsradmin';
 const ADMIN_PASSWORD = 'Csr@dsr2500';
-const SALESMAN_USERNAME = 'stidsr';
-const SALESMAN_PASSWORD = 'dsrlite1';
+
+// Pre-created salesmen accounts (case-insensitive check)
+const SALESMEN = [
+  { username: 'stism1', password: 'liteline101' },
+  { username: 'stism2', password: 'liteline102' },
+  { username: 'stism3', password: 'liteline103' },
+  { username: 'stism4', password: 'liteline104' },
+  { username: 'stism5', password: 'liteline105' },
+  { username: 'stism6', password: 'liteline106' },
+  { username: 'stism7', password: 'liteline107' },
+  { username: 'stism8', password: 'liteline108' },
+  { username: 'stism9', password: 'liteline109' },
+  { username: 'stism10', password: 'liteline110' },
+  // also keep the common login
+  { username: 'stidsr', password: 'dsrlite1' }
+];
 
 const selectors = {
   main: document.getElementById('main'),
@@ -38,7 +52,15 @@ const selectors = {
 function loadEntries(){ try{ return JSON.parse(localStorage.getItem('dsr_entries')||'[]') }catch(e){return []} }
 function saveEntries(arr){ localStorage.setItem('dsr_entries', JSON.stringify(arr)) }
 function gradeFromCottons(n){ n = Number(n)||0; if(n>=10) return 'A'; if(n>=5) return 'B'; if(n>=1) return 'C'; return 'N/A'; }
-function downloadCSV(filename, rows){ const header = Object.keys(rows[0]||{}).join(',')+'\n'; const body = rows.map(r=>Object.values(r).map(v=>'"'+String(v||'').replace(/"/g,'""')+'"').join(',')).join('\n'); const blob=new Blob([header+body],{type:'text/csv;charset=utf-8;'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url); }
+function downloadCSV(filename, rows){ const header = Object.keys(rows[0]||{}).join(',')+'
+'; const body = rows.map(r=>Object.values(r).map(v=>'"'+String(v||'').replace(/"/g,'""')+'"').join(',')).join('
+'); const blob=new Blob([header+body],{type:'text/csv;charset=utf-8;'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url); }
+
+function validateSalesman(u,p){
+  const lowerU = (u||'').toLowerCase();
+  const lowerP = (p||'').toLowerCase();
+  return SALESMEN.some(s => s.username.toLowerCase() === lowerU && s.password.toLowerCase() === lowerP);
+}
 
 function renderSalesmanLogin(){
   selectors.main.innerHTML = `
@@ -47,23 +69,24 @@ function renderSalesmanLogin(){
     <form id="sales-login-form" class="space-y-3">
       <div>
         <label class="text-xs">Username</label>
-        <input id="sales-username" required class="w-full border rounded p-2" />
+        <input id="sales-username" required class="w-full border rounded p-2" placeholder="e.g. stism1" />
       </div>
       <div>
         <label class="text-xs">Password</label>
-        <input id="sales-password" type="password" required class="w-full border rounded p-2" />
+        <input id="sales-password" type="password" required class="w-full border rounded p-2" placeholder="e.g. liteline101" />
       </div>
       <div>
         <button type="submit" class="w-full p-2 bg-blue-600 text-white rounded">Login</button>
       </div>
     </form>
+    <div class="mt-2 text-xs text-gray-500">Enter your salesman username & password (accounts provided by admin).</div>
   </section>`;
 
   document.getElementById('sales-login-form').onsubmit = (e)=>{
     e.preventDefault();
-    const u = document.getElementById('sales-username').value.trim().toLowerCase();
-    const p = document.getElementById('sales-password').value.trim().toLowerCase();
-    if(u === SALESMAN_USERNAME.toLowerCase() && p === SALESMAN_PASSWORD.toLowerCase()){
+    const u = document.getElementById('sales-username').value.trim();
+    const p = document.getElementById('sales-password').value.trim();
+    if(validateSalesman(u,p)){
       renderSubmitForm(u);
     } else {
       alert('Invalid salesman credentials');
@@ -71,7 +94,7 @@ function renderSalesmanLogin(){
   }
 }
 
-function renderSubmitForm(username){
+function renderSubmitForm(loggedUsername){
   selectors.main.innerHTML = `
   <section class="bg-white p-4 rounded shadow-sm">
     <h2 class="font-semibold mb-2">Outlet Sales Submission</h2>
@@ -81,8 +104,8 @@ function renderSubmitForm(username){
         <input id="fld-date" type="date" required class="w-full border rounded p-2" />
       </div>
       <div>
-        <label class="text-xs">Executive Name</label>
-        <input id="fld-exec" value="${username}" readonly required class="w-full border rounded p-2 bg-gray-100" />
+        <label class="text-xs">Executive Name (type your name)</label>
+        <input id="fld-exec" required class="w-full border rounded p-2" placeholder="Enter executive name" />
       </div>
       <div>
         <label class="text-xs">Distributor Name</label>
@@ -151,9 +174,12 @@ function renderSubmitForm(username){
 
   document.getElementById('dsr-form').onsubmit = (e)=>{
     e.preventDefault();
+    const execName = document.getElementById('fld-exec').value.trim();
+    if(!execName){ alert('Executive name is required'); return }
     const entry = {
       date: document.getElementById('fld-date').value || new Date().toISOString().slice(0,10),
-      executive: document.getElementById('fld-exec').value,
+      executive: execName,
+      submitted_by_username: loggedUsername,
       distributor: document.getElementById('fld-distributor').value,
       district: document.getElementById('fld-district').value,
       beat_location: document.getElementById('fld-beat').value,
